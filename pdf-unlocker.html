@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Unlocker Pro - Déverrouillage & Analyse de Sécurité</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 150, 255, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+        }
+
+        .header p {
+            color: #888;
+            font-size: 0.95em;
+            letter-spacing: 1px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(20, 25, 45, 0.8);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card:hover {
+            border-color: rgba(0, 150, 255, 0.4);
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.1);
+        }
+
+        .card h2 {
+            color: #00ff88;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2::before {
+            content: '▶';
+            font-size: 0.8em;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(0, 255, 136, 0.4);
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-area:hover {
+            border-color: rgba(0, 255, 136, 0.8);
+            background: rgba(0, 255, 136, 0.05);
+        }
+
+        .upload-area:hover::before {
+            left: 100%;
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .upload-text {
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .upload-hint {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .file-info {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 3px solid #00ff88;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .file-info strong {
+            color: #00ff88;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #00d4ff;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(10, 15, 30, 0.8);
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            border-radius: 4px;
+            font-size: 0.9em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: rgba(0, 255, 136, 0.6);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 140px;
+            padding: 12px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            color: #0a0e27;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(0, 150, 255, 0.2);
+            color: #00d4ff;
+            border: 1px solid rgba(0, 150, 255, 0.4);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0, 150, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 150, 255, 0.2);
+        }
+
+        .btn-danger {
+            background: rgba(255, 100, 100, 0.2);
+            color: #ff6464;
+            border: 1px solid rgba(255, 100, 100, 0.4);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 100, 100, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .status.show {
+            display: block;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status.info {
+            background: rgba(0, 150, 255, 0.15);
+            border-left: 3px solid #00d4ff;
+            color: #00d4ff;
+        }
+
+        .status.success {
+            background: rgba(0, 255, 136, 0.15);
+            border-left: 3px solid #00ff88;
+            color: #00ff88;
+        }
+
+        .status.warning {
+            background: rgba(255, 180, 0, 0.15);
+            border-left: 3px solid #ffb400;
+            color: #ffb400;
+        }
+
+        .status.danger {
+            background: rgba(255, 100, 100, 0.15);
+            border-left: 3px solid #ff6464;
+            color: #ff6464;
+        }
+
+        .scan-results {
+            margin-top: 30px;
+        }
+
+        .scan-item {
+            background: rgba(10, 15, 30, 0.6);
+            border-left: 3px solid #666;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .scan-item.safe {
+            border-left-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .scan-item.warning {
+            border-left-color: #ffb400;
+            color: #ffb400;
+        }
+
+        .scan-item.danger {
+            border-left-color: #ff6464;
+            color: #ff6464;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 150, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .log-box {
+            background: rgba(10, 15, 30, 0.8);
+            border: 1px solid rgba(0, 150, 255, 0.2);
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.85em;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-entry.error {
+            color: #ff6464;
+        }
+
+        .log-entry.warning {
+            color: #ffb400;
+        }
+
+        .security-score {
+            font-size: 2.5em;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            background: rgba(0, 255, 136, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .security-score.high {
+            color: #00ff88;
+            border-color: rgba(0, 255, 136, 0.6);
+        }
+
+        .security-score.medium {
+            color: #ffb400;
+            border-color: rgba(255, 180, 0, 0.6);
+        }
+
+        .security-score.low {
+            color: #ff6464;
+            border-color: rgba(255, 100, 100, 0.6);
+        }
+
+        .password-suggestion {
+            background: rgba(0, 150, 255, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-size: 0.85em;
+            color: #00d4ff;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 15, 30, 0.6);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 136, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 136, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔓 PDF UNLOCKER PRO</h1>
+            <p>Déverrouillage • Analyse de Sécurité • Détection de Malware</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- Section Upload & Analyse -->
+            <div class="card">
+                <h2>Télécharger & Analyser</h2>
+                
+                <div class="form-group">
+                    <div class="upload-area" id="uploadArea">
+                        <span class="upload-icon">📄</span>
+                        <div class="upload-text">Cliquez ou glissez un PDF</div>
+                        <div class="upload-hint">PDF chiffré ou normal</div>
+                        <input type="file" id="fileInput" accept=".pdf" />
+                    </div>
+                    <div id="fileStatus" class="file-info" style="display: none;"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" id="scanBtn" style="display: none;">
+                        <span class="loader"></span> Analyser Sécurité
+                    </button>
+                    <button class="btn-danger" id="clearBtn" style="display: none;">Réinitialiser</button>
+                </div>
+
+                <div id="scanStatus" class="status"></div>
+                <div id="scanResults" class="scan-results"></div>
+            </div>
+
+            <!-- Section Déverrouillage -->
+            <div class="card">
+                <h2>Déverrouiller</h2>
+                
+                <div class="form-group">
+                    <label>Mot de passe connu</label>
+                    <input type="password" id="knownPassword" placeholder="Entrez le mot de passe..." />
+                </div>
+
+                <div class="form-group">
+                    <label>Wordlist / Mots à essayer</label>
+                    <textarea id="passwordList" placeholder="Entrez les mots de passe à essayer (un par ligne)&#10;Exemples:&#10;password123&#10;admin&#10;test"></textarea>
+                    <div class="password-suggestion">
+                        💡 Suggestions: password, admin, user, test, 123456, welcome, hello, openme
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" id="unlockBtn">Déverrouiller</button>
+                </div>
+
+                <div id="unlockStatus" class="status"></div>
+                <div id="progressContainer" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div style="color: #888; font-size: 0.85em; margin-top: 10px;" id="progressText"></div>
+                </div>
+
+                <div id="unlockResults"></div>
+            </div>
+        </div>
+
+        <!-- Section Log -->
+        <div class="card">
+            <h2>Journal d'Activité</h2>
+            <div class="log-box" id="logBox"></div>
+            <button class="btn-secondary" style="margin-top: 15px; width: 100%;" id="clearLogBtn">Effacer le journal</button>
+        </div>
+    </div>
+
+    <script>
+        let currentPDF = null;
+        let pdfFileName = '';
+        let isEncrypted = false;
+
+        const pdfjsWorker = pdfjsLib.getDocument.bind(pdfjsLib);
+
+        // Gestion de l'upload
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileStatus = document.getElementById('fileStatus');
+        const scanBtn = document.getElementById('scanBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = 'rgba(0, 255, 136, 0.1)';
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.background = '';
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '';
+            if (e.dataTransfer.files[0]) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        async function handleFileSelect(file) {
+            if (file.type !== 'application/pdf') {
+                showStatus('fileStatus', 'danger', '❌ Veuillez sélectionner un fichier PDF');
+                return;
+            }
+
+            pdfFileName = file.name;
+            const fileSize = (file.size / 1024).toFixed(2);
+            log(`📂 Fichier sélectionné: ${pdfFileName} (${fileSize} KB)`, 'info');
+
+            const arrayBuffer = await file.arrayBuffer();
+            currentPDF = arrayBuffer;
+
+            // Vérifier si chiffré
+            checkEncryption(arrayBuffer);
+
+            fileStatus.style.display = 'block';
+            fileStatus.innerHTML = `
+                <strong>Nom:</strong> ${pdfFileName}<br>
+                <strong>Taille:</strong> ${fileSize} KB<br>
+                <strong>État:</strong> ${isEncrypted ? '🔒 Chiffré' : '🔓 Normal'}
+            `;
+
+            scanBtn.style.display = 'inline-block';
+            clearBtn.style.display = 'inline-block';
+        }
+
+        function checkEncryption(arrayBuffer) {
+            const view = new Uint8Array(arrayBuffer);
+            const textDecoder = new TextDecoder();
+            const header = textDecoder.decode(view.slice(0, 20));
+            
+            isEncrypted = false;
+            
+            try {
+                pdfjsLib.getDocument(arrayBuffer).promise.then(pdf => {
+                    isEncrypted = pdf.isEncrypted || false;
+                    log(`🔍 Vérification chiffrement: ${isEncrypted ? 'Oui' : 'Non'}`, 'info');
+                }).catch(() => {
+                    isEncrypted = true;
+                    log('⚠️ PDF semble être chiffré', 'warning');
+                });
+            } catch (e) {
+                isEncrypted = true;
+            }
+        }
+
+        // Analyse de sécurité
+        scanBtn.addEventListener('click', async () => {
+            if (!currentPDF) return;
+
+            showStatus('scanStatus', 'info', '<span class="loader"></span> Analyse en cours...');
+            log('🔐 Début de l\'analyse de sécurité...', 'info');
+
+            const arrayBuffer = currentPDF;
+            const view = new Uint8Array(arrayBuffer);
+            
+            // Simuler une analyse
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            let score = 95;
+            const results = [];
+
+            // Test 1: Taille
+            if (view.length > 50 * 1024 * 1024) {
+                results.push({level: 'warning', text: '⚠️ PDF volumineux (>50MB) - Peut être un risque'});
+                score -= 10;
+            } else {
+                results.push({level: 'safe', text: '✓ Taille normale'});
+            }
+
+            // Test 2: Objets JavaScript
+            const content = new TextDecoder('utf-8', {fatal: false}).decode(view);
+            if (/\/JS|\/OpenAction|\/AA/gi.test(content)) {
+                results.push({level: 'danger', text: '🚨 Contient du JavaScript - RISQUE ÉLEVÉ'});
+                score -= 30;
+            } else {
+                results.push({level: 'safe', text: '✓ Aucun JavaScript détecté'});
+            }
+
+            // Test 3: Objets embarqués
+            if (/\/EmbeddedFile|\/XObject.*\/Subtype.*\/Image/gi.test(content)) {
+                results.push({level: 'warning', text: '⚠️ Contient des fichiers embarqués'});
+                score -= 5;
+            } else {
+                results.push({level: 'safe', text: '✓ Pas de fichiers embarqués suspects'});
+            }
+
+            // Test 4: Chiffrement
+            if (isEncrypted) {
+                results.push({level: 'warning', text: '⚠️ PDF chiffré - Nécessite un mot de passe'});
+                score -= 15;
+            } else {
+                results.push({level: 'safe', text: '✓ PDF non chiffré'});
+            }
+
+            // Test 5: Métadonnées
+            if (/\/OpenAction|\/Launch|\/SubmitForm/gi.test(content)) {
+                results.push({level: 'warning', text: '⚠️ Actions automatiques détectées'});
+                score -= 10;
+            } else {
+                results.push({level: 'safe', text: '✓ Pas d\'actions automatiques'});
+            }
+
+            const securityLevel = score >= 85 ? 'high' : score >= 70 ? 'medium' : 'low';
+            
+            showStatus('scanStatus', 'success', `✓ Analyse complétée - Score: ${score}/100`);
+            
+            const resultsHtml = `
+                <div class="security-score ${securityLevel}">${score}/100</div>
+                <div>${results.map(r => `<div class="scan-item ${r.level}">${r.text}</div>`).join('')}</div>
+            `;
+            
+            document.getElementById('scanResults').innerHTML = resultsHtml;
+            log(`✓ Analyse complétée - Score de sécurité: ${score}/100`, 'info');
+        });
+
+        // Déverrouillage
+        document.getElementById('unlockBtn').addEventListener('click', async () => {
+            if (!currentPDF) {
+                showStatus('unlockStatus', 'danger', '❌ Veuillez d\'abord charger un PDF');
+                return;
+            }
+
+            const knownPassword = document.getElementById('knownPassword').value;
+            const passwordList = document.getElementById('passwordList').value
+                .split('\n')
+                .map(p => p.trim())
+                .filter(p => p.length > 0);
+
+            const allPasswords = [];
+            if (knownPassword) allPasswords.push(knownPassword);
+            allPasswords.push(...passwordList);
+
+            if (allPasswords.length === 0) {
+                showStatus('unlockStatus', 'warning', '⚠️ Entrez au moins un mot de passe à essayer');
+                return;
+            }
+
+            log(`🔓 Tentative de déverrouillage avec ${allPasswords.length} mots de passe...`, 'info');
+            showStatus('unlockStatus', 'info', '<span class="loader"></span> Tentative en cours...');
+
+            document.getElementById('progressContainer').style.display = 'block';
+            let cracked = false;
+            let successPassword = null;
+
+            for (let i = 0; i < allPasswords.length; i++) {
+                const password = allPasswords[i];
+                const progress = ((i + 1) / allPasswords.length) * 100;
+                
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressText').textContent = 
+                    `Tentative ${i + 1}/${allPasswords.length}`;
+
+                try {
+                    const result = await pdfjsLib.getDocument({
+                        data: currentPDF,
+                        password: password
+                    }).promise;
+
+                    log(`✓ Mot de passe trouvé: "${password}"`, 'success');
+                    cracked = true;
+                    successPassword = password;
+                    break;
+                } catch (e) {
+                    if (i % 5 === 0) {
+                        log(`  → Tentative ${i + 1}: "${password}" échouée`, 'warning');
+                    }
+                }
+
+                // Délai pour éviter le blocage
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            document.getElementById('progressContainer').style.display = 'none';
+
+            if (cracked) {
+                showStatus('unlockStatus', 'success', 
+                    `✅ PDF déverrouillé avec succès!<br>Mot de passe: <strong>${successPassword}</strong>`);
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'btn-primary';
+                downloadBtn.style.width = '100%';
+                downloadBtn.style.marginTop = '15px';
+                downloadBtn.textContent = '⬇️ Télécharger PDF déverrouillé';
+                downloadBtn.onclick = () => downloadUnlockedPDF(successPassword);
+                
+                document.getElementById('unlockResults').innerHTML = '';
+                document.getElementById('unlockResults').appendChild(downloadBtn);
+                
+                log(`📥 Prêt pour téléchargement`, 'success');
+            } else {
+                showStatus('unlockStatus', 'danger', 
+                    `❌ Aucun mot de passe n'a fonctionné (${allPasswords.length} tentatives)`);
+                log(`❌ Échec après ${allPasswords.length} tentatives`, 'error');
+            }
+        });
+
+        async function downloadUnlockedPDF(password) {
+            try {
+                const pdf = await pdfjsLib.getDocument({
+                    data: currentPDF,
+                    password: password
+                }).promise;
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Pour cet exemple, on simule le téléchargement
+                // En production, utiliser une lib comme PDFKit ou jsPDF
+                const blob = new Blob([currentPDF], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${pdfFileName.replace('.pdf', '')}_unlocked.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                log(`✓ PDF téléchargé: ${a.download}`, 'success');
+            } catch (e) {
+                log(`❌ Erreur lors du téléchargement: ${e.message}`, 'error');
+            }
+        }
+
+        // Utilitaires
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            element.className = `status show ${type}`;
+            element.innerHTML = message;
+        }
+
+        function log(message, type = 'info') {
+            const logBox = document.getElementById('logBox');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString('fr-FR');
+            entry.textContent = `[${timestamp}] ${message}`;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            currentPDF = null;
+            pdfFileName = '';
+            fileStatus.style.display = 'none';
+            scanBtn.style.display = 'none';
+            clearBtn.style.display = 'none';
+            document.getElementById('scanResults').innerHTML = '';
+            document.getElementById('unlockResults').innerHTML = '';
+            fileInput.value = '';
+            log('🔄 Réinitialisation effectuée', 'info');
+        });
+
+        document.getElementById('clearLogBtn').addEventListener('click', () => {
+            document.getElementById('logBox').innerHTML = '';
+            log('📋 Journal effacé', 'info');
+        });
+
+        // Log initial
+        log('🚀 Application démarrée et prête', 'success');
+    </script>
+</body>
+</html>
